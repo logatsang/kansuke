@@ -1,4 +1,5 @@
 import re
+from collections import Counter
 
 INPUT_FILENAME = "2023summer\kansuke\ids.txt"
 IDCS = "⿰⿱⿲⿳⿴⿵⿶⿷⿸⿹⿺⿻"
@@ -6,7 +7,7 @@ WRONG = "[\"AGHJKMOSTUVX\[\]αℓ①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮�
 
 sequences_dict = {}
 visited = set()
-leaves = set()
+leaves = Counter()
 
 with open(INPUT_FILENAME, "r", encoding="utf-8") as input_file:
     for line in input_file:
@@ -23,17 +24,19 @@ with open(INPUT_FILENAME, "r", encoding="utf-8") as input_file:
 
 def visit_char(char):
     if char in visited:
+        if char in leaves:
+            leaves[char] += 1
         return
 
     visited.add(char)
     if char not in sequences_dict:
-        leaves.add(char)
+        leaves[char] += 1
         return
 
     seqs = sequences_dict[char]
     for seq in seqs:
         if len(seq) == 1:
-            leaves.add(char)
+            leaves[char] += 1
             continue 
 
         for child in seq:
@@ -45,6 +48,4 @@ def visit_char(char):
 for character in sequences_dict:
     visit_char(character)
 
-leaves = sorted(list(leaves))
-
-print("".join(leaves), len(leaves))
+print(leaves.most_common(), len(leaves))
