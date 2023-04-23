@@ -1,7 +1,8 @@
-
+import re
 
 INPUT_FILENAME = "2023summer\kansuke\ids.txt"
 IDCS = "⿰⿱⿲⿳⿴⿵⿶⿷⿸⿹⿺⿻"
+WRONG = "[\"AGHJKMOSTUVX\[\]αℓ①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑲]"
 
 sequences_dict = {}
 visited = set()
@@ -14,7 +15,10 @@ with open(INPUT_FILENAME, "r", encoding="utf-8") as input_file:
 
         line = line.strip().split()
         codepoint, character, sequences = line[0], line[1], line[2:]
-        sequences_dict[character] = sequences
+        
+        cleaned_sequences = [re.sub(WRONG, "", sequence) for sequence in sequences]
+            
+        sequences_dict[character] = cleaned_sequences
 
 
 def visit_char(char):
