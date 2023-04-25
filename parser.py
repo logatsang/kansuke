@@ -16,9 +16,9 @@ with open(INPUT_FILENAME, "r", encoding="utf-8") as input_file:
 
         line = line.strip().split()
         codepoint, character, sequences = line[0], line[1], line[2:]
-        
+
         cleaned_sequences = [re.sub(WRONG, "", sequence) for sequence in sequences]
-            
+
         sequences_dict[character] = cleaned_sequences
 
 
@@ -42,7 +42,7 @@ def visit_char(char):
         for child in seq:
             if child not in IDCS:
                 visit_char(child)
-            
+  
 
 
 for character in sequences_dict:
