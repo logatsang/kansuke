@@ -2,17 +2,21 @@ import re
 from collections import Counter
 from dataclasses import dataclass
 
+from typing import Tuple
+
+DEBUG = True
+
 IDS_FILE = "ids.txt"
 TAG_FILE = "tags.txt"
 IDCS = "⿰⿱⿲⿳⿴⿵⿶⿷⿸⿹⿺⿻"
-WRONG = "[\"AGHJKMOSTUVX\[\]αℓ①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑲]"
+WRONG = "[\"AGHJKMOSTUVX\[\]]"
 
-sequences_dict = {}
 visited = set()
 leaves = Counter()
 
 @dataclass
 class Character:
+    "Class to represent a tagged character."
     char: str
     hor: int = 0
     ver: int = 0
@@ -24,79 +28,112 @@ class Character:
                          self.ver+other.ver,
                          self.oth+other.oth)
 
-with open(IDS_FILE, "r", encoding="utf-8") as input_file:
-    for line in input_file:
-        if line[0] == "#":
-            continue
 
-        line = line.strip().split()
-        codepoint, character, sequences = line[0], line[1], line[2:]
+def read_ids(filename: str) -> dict:
+    "Read Ideographic Description Sequences from a specified file."
+    sequences_dict = dict()
+    with open(filename, "r", encoding="utf-8") as input_file:
+        for line in input_file:
+            if line[0] == "#":
+                continue
 
-        cleaned_sequences = [re.sub(WRONG, "", sequence) for sequence in sequences]
+            line = line.strip().split()
+            _codepoint, character, sequences = line[0], line[1], line[2:]
 
-        sequences_dict[character] = cleaned_sequences
+            cleaned_sequences = [re.sub(WRONG, "", sequence) for sequence in sequences]
+            sequences_dict[character] = cleaned_sequences
+
+    return sequences_dict
 
 
-def visit_char(char):
+def read_tags(filename: str) -> dict:
+    "Read primitive tag data from a specified file."
+    tags = dict()
+    with open(filename, "r", encoding="utf-8") as input_file:
+        for line in input_file:
+            try:
+                char, code, *_raw = line.split()
+                hor, ver, oth = (int(x) for x in code.split("-"))
+                tags[char] = Character(char, hor, ver, oth)
+            except ValueError:
+                continue
+    
+    return tags
+
+
+def visit_char(ids_data: dict, char: str) -> None:
+    "Find all primitives contained in a character."
     if char in visited:
         if char in leaves:
             leaves[char] += 1
         return
 
     visited.add(char)
-    if char not in sequences_dict:
+    if char not in ids_data:
         leaves[char] += 1
         return
 
-    seqs = sequences_dict[char]
+    seqs = ids_data[char]
+    debug_seqs = list()
     for seq in seqs:
         if len(seq) == 1:
             leaves[char] += 1
-            continue 
+            continue
+
+        if DEBUG and any(9312 <= ord(x) <= 9330 for x in seq):
+            debug_seqs.append(seq)
 
         for child in seq:
-            if child not in IDCS:
-                visit_char(child)
+            if child not in IDCS and not (9312 <= ord(child) <= 9330):
+                visit_char(ids_data, child)
+        
+    if DEBUG and debug_seqs:
+        seqs_out = "\t".join(debug_seqs)
+        with open("missing", "a", encoding="utf-8") as debug_file:
+            debug_file.write(f"U+{ord(char):X}\t{char}\t{seqs_out}\n")
 
 
-for character in sequences_dict:
-    visit_char(character)
-
-
-tagged = {}
-visited.clear()
-with open(TAG_FILE, "r", encoding="utf-8") as input_file:
-    for line in input_file:
-        char, code, *raw = line.split()
-        hor, ver, oth = (int(x) for x in code.split("-"))
-        tagged[char] = Character(char, hor, ver, oth)
-
-
-for idc in IDCS:
-    tagged[idc] = Character(idc)
-
-
-def tag_char(char):
-    if char in tagged or len(sequences_dict[char]) == 1:
+def tag_char(char: str, tagged: dict, ids_data: dict):
+    "Recursively tag a character and all of its components."
+    if char in visited:
         return
-    
-    for seq in sequences_dict[char]:
-        if any(9312 >= ord(x) >= 9330 for x in seq):
+
+    visited.add(char)
+
+    if char in tagged or len(ids_data[char]) == 1:
+        return
+
+    for seq in ids_data[char]:
+        if any(9312 <= ord(x) <= 9330 for x in seq):
             continue
 
         for child in seq:
-            tag_char(child)
-        
+            tag_char(child, tagged, ids_data)
+
         if all(child in tagged for child in seq):
             tagged[char] = Character(char)
             for child in seq:
                 tagged[char] += tagged[child]
             return  # TODO: allow multiple tags
-        
 
-for character in sequences_dict:
-    tag_char(character)
 
-print(tagged, len(tagged))
+def main():
+    # Read data
+    ids_data = read_ids(IDS_FILE)
+    tag_data = read_tags(TAG_FILE)
 
-# print(leaves.most_common(), len(leaves))
+    # Find leaves
+    visited.clear()
+    for character in ids_data:
+        visit_char(ids_data, character)
+
+    # Generate tags
+    for idc in IDCS:
+        tag_data[idc] = Character(idc)
+
+    visited.clear()
+    for character in ids_data:
+        tag_char(character, tag_data, ids_data)
+    
+if __name__ == "__main__":
+    main()
