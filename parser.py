@@ -36,6 +36,9 @@ class Character:
             self.oth+other.oth
         )
 
+    def __repr__(self) -> str:
+        return f"{self.hor}-{self.ver}-{self.oth}"
+
 
 def read_ids(filename: str) -> dict:
     """Read Ideographic Description Sequences from a specified file."""
@@ -123,11 +126,11 @@ def tag_char(char: str, tagged: dict, ids_data: dict):
             tagged[char] = Character(char)
             for child in seq:
                 tagged[char] += tagged[child]
-            return  # TODO: allow multiple tags
+            return          # TODO: allow multiple tags
 
 
 def main():
-    """Main function"""
+    """Main function"""     # TODO: proper docstring
     # Read data
     ids_data = read_ids(IDS_FILE)
     tag_data = read_tags(TAG_FILE)
