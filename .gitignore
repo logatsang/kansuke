@@ -1,4 +1,5 @@
 out
 todo
 debug
-*\.env
+*.env
+*.db

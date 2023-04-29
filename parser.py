@@ -9,7 +9,7 @@ DEBUG = True
 IDS_FILE = "ids.txt"
 TAG_FILE = "tags.txt"
 IDCS = "⿰⿱⿲⿳⿴⿵⿶⿷⿸⿹⿺⿻"
-WRONG = "[\"AGHJKMOSTUVX[]]"
+WRONG = r"[\"AGHJKMOSTUVX\[\]]"
 
 visited = set()
 leaves = Counter()
